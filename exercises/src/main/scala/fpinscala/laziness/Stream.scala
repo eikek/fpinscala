@@ -18,11 +18,20 @@ trait Stream[+A] {
     case Cons(h, t) => if (f(h())) Some(h()) else t().find(f)
   }
 
-  def take(n: Int): Stream[A] =
+  def take2(n: Int): Stream[A] =
     if (n <= 0) Empty
     else this match {
       case Cons(h,t) => Cons(h, () => t().take(n - 1))
       case _ => this
+    }
+
+  def take(n: Int): Stream[A] =
+    unfold(0) { i =>
+      if (i >= n) None
+      else drop(i) match {
+        case Cons(h,t) => Some(h() -> (i + 1))
+        case _ => None
+      }
     }
 
   def drop(n: Int): Stream[A] =
@@ -32,12 +41,18 @@ trait Stream[+A] {
       case _ => this
     }
 
-  def takeWhile(p: A => Boolean): Stream[A] = this match {
+  def takeWhile2(p: A => Boolean): Stream[A] = this match {
     case Cons(h, t) if p(h()) => Cons(h, () => t().takeWhile(p))
     case _ => Empty
   }
 
-  def takeWhile2(p: A => Boolean): Stream[A] =
+  def takeWhile(p: A => Boolean): Stream[A] =
+    unfold(this) { 
+      case s@Cons(h,t) if p(h()) => Some(h() -> s.drop(1))
+      case _ => None
+    }
+
+  def takeWhile3(p: A => Boolean): Stream[A] =
     foldRight(empty: Stream[A]) { (a, stream) =>
       if (p(a)) Cons(() => a, () => stream.takeWhile2(p))
       else empty
@@ -48,15 +63,24 @@ trait Stream[+A] {
     case _ => true
   }
 
-  def headOption: Option[A] = sys.error("todo")
+  def headOption: Option[A] =
+    foldRight(None: Option[A])((a, b) => Some(a))
 
   // 5.7 map, filter, append, flatmap using foldRight. Part of the exercise is
   // writing your own function signatures.
 
   def map[B](f: A => B): Stream[B] =
+    unfold(this) { str =>
+      str.headOption match {
+        case Some(a) => Some(f(a) -> str.drop(1))
+        case None => None
+      }
+    }
+
+  def map2[B](f: A => B): Stream[B] =
     foldRight(empty: Stream[B]) { (a, str) => Cons(() => f(a), () => str) }
 
-  def filter(p: A => Boolean): Stream[A] = 
+  def filter(p: A => Boolean): Stream[A] =
     foldRight(empty: Stream[A]){ (a, str) =>
       if (p(a)) cons(a, str.filter(p)) else str.filter(p)
     }
@@ -67,9 +91,28 @@ trait Stream[+A] {
   def flatMap[B](f: A => Stream[B]): Stream[B] =
     foldRight(empty: Stream[B]){ (a, stream) => f(a).append(stream) }
 
-  def startsWith[B](s: Stream[B]): Boolean = sys.error("todo")
+  def startsWith[B](s: Stream[B]): Boolean = this.zipAll(s).foldRight(false) {
+    ???
+  }
 
   def toList: List[A] = foldRight(Nil: List[A])((a, list) => a :: list)
+
+  def zipAll[B](s2: Stream[B]): Stream[(Option[A], Option[B])] = {
+    unfold(this -> s2) { case (a, b) =>
+      (a.headOption, b.headOption) match {
+        case (x, y) => Some((x->y, a.drop(1) -> b.drop(1)))
+        case _ => None
+      }
+    }
+  }
+    
+    // (this, s2) match {
+    //   case (Cons(ha,ta), Cons(hb,tb)) => cons(Some(ha()) -> Some(hb()), ta().zipAll(tb()))
+    //   case (Empty, Cons(hb, tb)) => cons(None -> Some(hb()), Empty.zipAll(tb()))
+    //   case (Cons(ha, ta), Empty) => cons(Some(ha()) -> None, ta().zipAll(Empty))
+    //   case (Empty, Empty) => Empty
+    // }
+
 
 }
 case object Empty extends Stream[Nothing]

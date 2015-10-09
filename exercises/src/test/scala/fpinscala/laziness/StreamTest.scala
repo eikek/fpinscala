@@ -71,4 +71,26 @@ class StreamTest extends FlatSpec {
   "unfold(0)(n => Some(n, n+1))" should "be from(0)" in {
     assert(unfold(0)(n => Some((n, n+1))).take(5).toList == from(0).take(5).toList)
   }
+
+  "ones.headOption" should "be Some(1)" in {
+    assert(ones.headOption == Some(1))
+  }
+
+  "Stream(2,3).headOption" should "be Some(2)" in {
+    assert(Stream(2,3).headOption == Some(2))
+  }
+
+  "Stream.empty.headOption" should "be None" in {
+    assert(empty.headOption == None)
+  }
+
+  // "Stream(1,2,3).zipAll(Stream(5,4,3))" should "be [(1,5),(2,4),(3,3)]" in {
+  //   assert {
+  //     Stream(1,2,3).zipAll(Stream(5,4,3)).toList == List.apply(
+  //       Some(1) -> Some(5),
+  //       Some(2) -> Some(4),
+  //       Some(3) -> Some(3)
+  //     )
+  //   }
+  // }
 }
