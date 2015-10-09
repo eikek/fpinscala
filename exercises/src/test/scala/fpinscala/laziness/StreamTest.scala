@@ -84,13 +84,17 @@ class StreamTest extends FlatSpec {
     assert(empty.headOption == None)
   }
 
-  // "Stream(1,2,3).zipAll(Stream(5,4,3))" should "be [(1,5),(2,4),(3,3)]" in {
-  //   assert {
-  //     Stream(1,2,3).zipAll(Stream(5,4,3)).toList == List.apply(
-  //       Some(1) -> Some(5),
-  //       Some(2) -> Some(4),
-  //       Some(3) -> Some(3)
-  //     )
-  //   }
-  // }
+  "Stream(1,2,3).zipAll(Stream(5,4,3))" should "be [(1,5),(2,4),(3,3)]" in {
+    assert {
+      Stream(1,2,3).zipAll(Stream(5,4,3)).toList == List.apply(
+        Some(1) -> Some(5),
+        Some(2) -> Some(4),
+        Some(3) -> Some(3)
+      )
+    }
+  }
+
+  "Stream(1,2,3).startsWith(Stream(1,2))" should "be true" in {
+    assert(Stream(1,2,3).startsWith(Stream(1,2)) == true)
+  }
 }
