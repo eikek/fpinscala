@@ -97,4 +97,9 @@ class StreamTest extends FlatSpec {
   "Stream(1,2,3).startsWith(Stream(1,2))" should "be true" in {
     assert(Stream(1,2,3).startsWith(Stream(1,2)) == true)
   }
+
+  "Stream(1,2,3).tails" should "be Stream(Stream(1,2,3), Stream(2,3), Stream(3), Stream())" in {
+
+    assert(Stream(1,2,3).tails.map(_.toList).toList == List(List(1,2,3), List(2,3), List(3), List()))
+  }
 }

@@ -105,7 +105,16 @@ trait Stream[+A] {
       }
     }
   }
+
+  def tails: Stream[Stream[A]] = unfold(this) {
+    case Empty => None
+    case s @ Cons(h, t) => Some(s -> t())
+  } append Stream(Empty)
+
+  def hasSubsequence[A](s: Stream[A]): Boolean =
+    tails exists (_ startsWith s)
 }
+
 case object Empty extends Stream[Nothing]
 case class Cons[+A](h: () => A, t: () => Stream[A]) extends Stream[A]
 
