@@ -21,6 +21,23 @@ object Nonblocking {
       ref.get // Once we've passed the latch, we know `ref` has been set, and return its value
     }
 
+    def runEx[A](es: ExecutorService)(p: Par[A]): Either[Exception, A] = {
+      val ref = new java.util.concurrent.atomic.AtomicReference[Either[Exception, A]]
+      val latch = new CountDownLatch(1)
+      try {
+        p(es) { a =>
+          ref.set(Right(a))
+          latch.countDown
+        }
+      } catch {
+        case ex: Exception =>
+          ref.set(Left(ex))
+          latch.countDown
+      }
+      latch.await
+      ref.get
+    }
+
     def unit[A](a: A): Par[A] =
       es => new Future[A] {
         def apply(cb: A => Unit): Unit =
@@ -130,10 +147,15 @@ object Nonblocking {
           }
       }
 
-    def choiceN[A](p: Par[Int])(ps: List[Par[A]]): Par[A] = ???
+    def choiceN[A](p: Par[Int])(ps: List[Par[A]]): Par[A] =
+      es => new Future[A] {
+        def apply(cb: A => Unit): Unit = p(es) { n =>
+          eval(es)(ps(n)(es)(cb))
+        }
+      }
 
     def choiceViaChoiceN[A](a: Par[Boolean])(ifTrue: Par[A], ifFalse: Par[A]): Par[A] =
-      ???
+      choiceN(map(a)(b => if (b) 1 else 0))(List(ifTrue, ifFalse))
 
     def choiceMap[K,V](p: Par[K])(ps: Map[K,Par[V]]): Par[V] =
       ???
