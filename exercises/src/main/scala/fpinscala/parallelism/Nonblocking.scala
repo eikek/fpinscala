@@ -2,6 +2,7 @@ package fpinscala.parallelism
 
 import java.util.concurrent.{Callable, CountDownLatch, ExecutorService}
 import java.util.concurrent.atomic.AtomicReference
+import scala.language.implicitConversions
 
 object Nonblocking {
 
@@ -158,29 +159,43 @@ object Nonblocking {
       choiceN(map(a)(b => if (b) 1 else 0))(List(ifTrue, ifFalse))
 
     def choiceMap[K,V](p: Par[K])(ps: Map[K,Par[V]]): Par[V] =
-      ???
+      es => new Future[V] {
+        def apply(cb: V => Unit): Unit = p(es) { k =>
+          eval(es)(ps(k)(es)(cb))
+        }
+      }
 
     // see `Nonblocking.scala` answers file. This function is usually called something else!
     def chooser[A,B](p: Par[A])(f: A => Par[B]): Par[B] =
-      ???
+      es => new Future[B] {
+        def apply(cb: B => Unit): Unit = p(es) { a =>
+          eval(es)(f(a)(es)(cb))
+        }
+      }
 
     def flatMap[A,B](p: Par[A])(f: A => Par[B]): Par[B] =
-      ???
+      chooser(p)(f)
 
     def choiceViaChooser[A](p: Par[Boolean])(f: Par[A], t: Par[A]): Par[A] =
-      ???
+      chooser(p){ b => if (b) f else t }
 
     def choiceNChooser[A](p: Par[Int])(choices: List[Par[A]]): Par[A] =
-      ???
+      chooser(p)(choices)
 
     def join[A](p: Par[Par[A]]): Par[A] =
-      ???
+      es => new Future[A] {
+        def apply(cb: A => Unit): Unit = p(es) { pa =>
+          eval(es)(pa(es)(cb))
+        }
+      }
 
     def joinViaFlatMap[A](a: Par[Par[A]]): Par[A] =
-      ???
+      flatMap(a)(identity)
 
     def flatMapViaJoin[A,B](p: Par[A])(f: A => Par[B]): Par[B] =
-      ???
+      join(map(p)(f))
+
+    def map2WithFlatmapAndUnit[A,B,C](p: Par[A], p2: Par[B])(f: (A,B) => C): Par[C] = ???
 
     /* Gives us infix syntax for `Par`. */
     implicit def toParOps[A](p: Par[A]): ParOps[A] = new ParOps(p)
